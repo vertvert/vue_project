@@ -106,6 +106,7 @@ button{
 </style>
 
 <script>
+import axios from 'axios';
 export default {
   data(){
     return{
@@ -115,6 +116,42 @@ export default {
     };
   },
   methods:{
+    fetchCaptcha() {
+    axios.get('/api/captcha')
+      .then(response => {
+        // 假设后端返回的是图片的Base64编码
+        this.captchaImageUrl = response.data;
+      })
+      .catch(error => {
+        console.error('Error fetching captcha:', error);
+      });
+  },
+  // Vue.js 组件中的方法，用于提交并验证验证码
+  submitCaptcha() {
+    const captchaData = {
+      captcha: this.captchaInput
+    };
+    axios.post('/api/verify-captcha', captchaData)
+      .then(response => {
+        if (response.data === '验证码正确！') {
+          alert('验证码验证成功！');
+          // 继续注册流程...
+        } else {
+          alert('验证码错误，请重试！');
+          this.refreshCaptcha();
+        }
+      })
+      .catch(error => {
+        console.error('Error submitting captcha:', error);
+      });
+  },
+  // Vue.js 组件中的方法，用于刷新验证码
+  refreshCaptcha() {
+    // 清空验证码输入
+    this.captchaInput = '';
+    // 重新获取验证码图片
+    this.fetchCaptcha();
+  },
     handlelogin:function()
     {
       if(this.name===localStorage['name'] && this.password===localStorage['password'])
