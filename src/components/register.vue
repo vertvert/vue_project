@@ -4,31 +4,148 @@
       <h1>Register</h1>
 
       <div class="form">
-        <label>用户名：</label><input type="text" v-model.trim="name"><br />
+        <label>用户名：</label>
+        <input type="text" v-model.trim="name" @blur="validateUsername">
+        <div v-if="showUsrWarning" class="warning">
+          请输入6-12位用户名，包括数字、大小写字母、特殊字符（不包括空格）。
+        </div>
       </div>
       <div class="form">
-        <label>密码：</label><input type="password" v-model.trim="password"><br />
+        <label>密码：</label>
+        <input type="password" v-model.trim="password" @blur="validatePassword">
+        <div v-if="showPwdWarning" class="warning">
+          请输入6-12位密码，包括数字、大小写字母、特殊字符（不包括空格）。
+        </div>
+      </div>
+      <div class="form">
+        <label>确认密码：</label>
+        <input type="password" v-model.trim="confirmPassword" @blur="validatePasswordMatch">
+        <div v-if="passwordMismatch" class="warning">
+          请确认两次输入的密码一致。
+        </div>
+      </div>
+      <div class="form">
+        <label>手机号：</label>
+        <input type="tel" id="phone" v-model.trim="tel" @blur="validatePhoneNumber">
+        <div v-if="showTelWarning" class="warning">
+          请输入有效的手机号码。
+        </div>
       </div>
       <div class="form captcha-container">
-        <!-- 验证码文字说明放在前面，图片放在后面 -->
-        <label>验证码：</label>
+        <label>图形验证：</label>
         <input type="text" v-model.trim="captchaInput" placeholder="请输入验证码" style="width: auto;">
-        <!-- 确保点击图片时会触发refreshCaptcha方法 -->
         <img :src="captchaImageUrl" alt="图片验证码" @click="refreshCaptcha" style="margin-left: 5px; cursor: pointer;">
       </div>
-      <div class="form">
-        <label>邮箱：</label><input type="email" v-model.trim="mail"><br />
+      <!-- <div>
+        <input type="checkbox" id="admin" v-model="isAdmin">
+        <label for="admin">需要管理员身份请勾选</label>
       </div>
-      <div class="form">
-        <label>手机号：</label><input type="tel" v-model.trim="tel"><br />
+      <div>
+        <input type="checkbox" id="agree" v-model="isAgreed">
+        <label for="agree">我已阅读并同意用户协议</label>
+      </div> -->
+      <div>
+        <button @click="handlefinish">提交注册</button>
+        <button @click="goHome">返回主页</button>
       </div>
-      <!-- 添加两个按钮，一个用于提交注册，另一个用于返回主页 -->
-      <button @click="handlefinish">提交注册</button>
-      <button @click="goHome">返回主页</button>
     </div>
   </div>
 </template>
-//css
+
+<script>
+export default {
+  name: 'register',
+  props: {
+    msg: String
+  },
+  data() {
+    return {
+      name: "",
+      password: "",
+      confirmPassword: "",
+      captchaImageUrl: '',
+      captchaInput: '',
+      mail: "",
+      tel: "",
+      showUsrWarning: false,
+      showPwdWarning: false,
+      passwordMismatch: false,
+      showTelWarning: false,
+      isAdmin: false,
+      isAgreed: false
+    };
+  },
+  methods: {
+    validateUsername() {
+      const regex = /^(?=\S*[A-Za-z])(?=\S*\d)(?=\S*[`~!@#$%^&*()_\-+=<>?:"{}|,./;'\\[\]·~！@#￥%……&*（）——\-+={}|《》？：“”【】、；‘'，。、])\S{6,12}$/;
+      this.showUsrWarning = !regex.test(this.name);
+    },
+    validatePassword() {
+      const regex = /^(?=\S*[A-Za-z])(?=\S*\d)(?=\S*[`~!@#$%^&*()_\-+=<>?:"{}|,./;'\\[\]·~！@#￥%……&*（）——\-+={}|《》？：“”【】、；‘'，。、])\S{6,12}$/;
+      this.showPwdWarning = !regex.test(this.password);
+    },
+    validatePasswordMatch() {
+      this.passwordMismatch = this.password !== this.confirmPassword;
+    },
+    validatePhoneNumber() {
+      const validPhoneNumber = /^1[3456789]\d{9}$/.test(this.tel);
+      this.showTelWarning = !validPhoneNumber;
+    },
+    fetchCaptcha() {
+      fetch('http://localhost:3000/api/captcha')
+        .then(response => {
+          if (response.ok) {
+            return response.blob();
+          }
+          throw new Error('Network response was not ok.');
+        })
+        .then(blob => {
+          this.captchaImageUrl = window.URL.createObjectURL(blob);
+        })
+        .catch(error => {
+          console.error('Error fetching captcha:', error);
+          this.captchaImageUrl = ''; // 指向一个错误图片URL
+        });
+    },
+    refreshCaptcha() {
+      this.fetchCaptcha();
+    },
+    goHome() {
+      window.location.href = '/';
+    },
+    handlefinish() {
+      const reg = /^1[3456789]\d{9}$/;
+      if (localStorage.getItem('name') === this.name) {
+        alert("用户名已存在");
+      } else if (!this.name) {
+        alert("用户名不能为空");
+      } else if (!this.password) {
+        alert('密码不能为空');
+      } else if (!this.confirmPassword) {
+        alert('请确认密码');
+      } else if (!this.tel) {
+        alert('手机号码不能为空');
+      } else if (!reg.test(this.tel)) {
+        alert("手机号格式不正确");
+      } else if (!this.isAgreed) {
+        alert('请先阅读并同意用户协议');
+      } else {
+        localStorage.setItem('name', this.name);
+        localStorage.setItem('password', this.password);
+        localStorage.setItem('mail', this.mail);
+        localStorage.setItem('tel', this.tel);
+        localStorage.setItem('s', "false");
+        alert("注册成功");
+        this.$router.replace('/Login');
+      }
+    }
+  },
+  mounted() {
+    this.fetchCaptcha();
+  }
+};
+</script>
+
 <style scoped>
 #background {
   width: 100%;
@@ -56,28 +173,12 @@
   color: white;
 }
 
-.form {
+.form, .captcha-container {
   color: white;
   margin-left: 20%;
   margin-top: 60px;
   font-size: 20px;
   text-align: left;
-}
-
-.captcha-container {
-  display: flex;
-  align-items: center;
-}
-
-.captcha-container img {
-  cursor: pointer;
-  vertical-align: middle;
-  /* 确保图片在垂直方向上居中对齐 */
-}
-
-.captcha-container input {
-  /* 根据需要调整宽度，这里使用auto让输入框宽度自适应 */
-  width: auto;
 }
 
 label {
@@ -87,8 +188,7 @@ label {
   text-align: right;
 }
 
-input,
-textarea {
+input, textarea {
   margin-left: 10px;
   padding: 4px;
   border: solid 1px #4e5ef3;
@@ -100,10 +200,7 @@ textarea {
   box-shadow: rgba(0, 0, 0, 0.1) 0px 0px 8px;
 }
 
-input:hover,
-textarea:hover,
-input:focus,
-textarea:focus {
+input:hover, textarea:hover, input:focus, textarea:focus {
   border-color: #0d0aa1;
 }
 
@@ -118,103 +215,22 @@ button {
   color: white;
   margin-left: 40px;
 }
+
+.captcha-container {
+  display: flex;
+  align-items: center;
+}
+
+.captcha-container img {
+  cursor: pointer;
+}
+
+.warning {
+  color: red;
+  font-size: 12px;
+  margin-top: 5px;
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+}
 </style>
-
-
-<script>
-export default {
-  name: 'register',
-  props: {
-    msg: String
-  },
-  data() {
-    return {
-      name: "",
-      password: "",
-      // 验证码图片的URL，初始为空或者指向默认占位图片
-      captchaImageUrl: '',
-      // 用户输入的验证码
-      captchaInput: '',
-      mail: "",
-      tel: ""
-    };
-  }, methods: {
-    fetchCaptcha() {
-      fetch('http://localhost:3000/api/captcha')
-        .then(response => {
-          if (response.ok) {
-            return response.blob();
-          }
-          throw new Error('Network response was not ok.');
-        })
-        .then(blob => {
-          this.captchaImageUrl = window.URL.createObjectURL(blob);
-        })
-        .catch(error => {
-          console.error('Error fetching captcha:', error);
-          // 错误处理，例如设置一个错误图片或显示错误消息
-          // this.captchaImageUrl = require('@/assets/error-captcha.png'); // 确保有错误图片资源
-          this.captchaImageUrl = ''; // 或者指向一个错误图片URL
-        });
-    },
-    // 刷新验证码图片
-    refreshCaptcha() {
-      this.fetchCaptcha();
-    }
-  },
-  // 在组件挂载后立即获取验证码图片
-  mounted() {
-    this.fetchCaptcha();
-  },
-  goHome() {
-    // 这里可以是路由跳转或者页面刷新
-    // 如果使用Vue Router，可以使用 this.$router.push('/') 来跳转
-    // 如果不使用Vue Router，可以刷新页面或者跳转到主页
-    window.location.href = '/';
-  },
-  //点击完成按钮触发handlefinish
-  handlefinish: function () {
-    const reg = /^1[3456789]\d{9}$/;//中国大陆手机号码的格式
-    // 校验是数字
-    const regex1 = /^\d+$/
-    // 校验字母
-    const regex2 = /^[A-Za-z]+$/
-    // 校验符号
-    // const regex3 = /^[`~!@#$%^&*()_\-+=<>?:"{}|,.\/;'\\[\]·~！@#￥%……&*（）——\-+={}|《》？：“”【】、；‘'，。、]+$/
-    const regex3 = /^[A-Za-z]+$/
-
-    if (localStorage['name'] === this.name) {
-      alert("用户名已存在");//如果用户名已存在则无法注册
-    }
-    else if (this.name === '') {
-      alert("用户名不能为空");
-    }
-    else if (this.password === '') {
-      alert('请输入密码');
-    }
-    else if (this.mail === '') {
-      alert('请输入邮箱');
-    }
-    else if (this.tel === '') {
-      alert('请输入手机号码');
-    }
-    else if (localStorage['tel'] !== this.tel) {
-      alert("手机号格式不正确");
-    }
-
-
-
-
-    else {//将新用户信息存储到localStorage
-      localStorage.setItem('name', this.name);
-      localStorage.setItem('password', this.password);
-      localStorage.setItem('mail', this.mail);
-      localStorage.setItem('tel', this.tel);
-
-      localStorage.setItem('s', "false");
-      alert("注册成功");
-      this.$router.replace('/Login');//完成注册后跳转至登录页面
-    }
-  }
-};
-</script>
