@@ -16,7 +16,3 @@ app.post('/api/verify-captcha', async (req, res) => {
     res.status(400).send('验证码错误！');
   }
 });
-
-app.listen(3000, () => {
-  console.log('Server is running on port 3000');
-});
